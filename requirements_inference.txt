@@ -1,0 +1,53 @@
+# ============================================================
+# LRPO INFERENCE requirements (validated from a fresh conda env, 2026-06)
+#   conda create -n lrpo python=3.10 -y && conda activate lrpo
+#   pip install -r requirements_inference.txt
+#   (a fresh-env install was verified to reproduce our LRPO outputs bit-for-bit)
+#
+# Notes:
+#   - Do NOT pin nvidia-*-cu12 wheels: torch pulls a consistent CUDA-12.6 stack itself.
+#     (The old full requirements.txt pinned both cu11 AND cu12 nvidia wheels, which
+#      breaks torch import — undefined symbol ncclMemFree / missing libcudnn.so.9.)
+#   - Training-only deps (basicsr / deepspeed / wandb / hpsv2 / tb-nightly ...) are NOT
+#     needed for inference and are intentionally excluded (basicsr pulls the unresolvable
+#     tb-nightly). They will ship with the training release.
+#   - setuptools<81 is required because pytorch-lightning 2.0's lightning_fabric still
+#     uses the deprecated pkg_resources (removed in setuptools>=81).
+# ============================================================
+
+# --- core (torch auto-installs the matching nvidia-cu12 libraries) ---
+torch==2.7.1
+torchvision==0.22.1
+torchaudio==2.7.1
+xformers==0.0.30
+
+# --- diffusion / transformers / CLIP ---
+diffusers==0.25.0
+transformers==4.28.1
+tokenizers==0.13.3
+huggingface-hub==0.25.0
+safetensors==0.5.2
+open-clip-torch==2.20.0
+openai-clip==1.0.1
+ftfy
+regex
+
+# --- lightning / accelerate / peft (model & ckpt loading) ---
+pytorch-lightning==2.0.0
+accelerate==1.7.0
+peft==0.9.0
+setuptools<81
+
+# --- config / utils / model blocks ---
+omegaconf==2.3.0
+einops==0.7.0
+timm==1.0.15
+torchsde==0.2.6
+facexlib==0.3.0
+
+# --- image / io / misc ---
+opencv-python==4.11.0.86
+scikit-image==0.24.0
+imageio
+scipy
+pandas==2.2.3

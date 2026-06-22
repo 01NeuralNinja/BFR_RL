@@ -1,0 +1,152 @@
+model:
+  cldm:
+    target: diffbir.model.cldm.ControlLDM
+    params:
+      latent_scale_factor: 0.18215
+      unet_cfg:
+        use_checkpoint: True
+        image_size: 32 # unused
+        in_channels: 4
+        out_channels: 4
+        model_channels: 320
+        attention_resolutions: [ 4, 2, 1 ]
+        num_res_blocks: 2
+        channel_mult: [ 1, 2, 4, 4 ]
+        num_head_channels: 64 # need to fix for flash-attn
+        use_spatial_transformer: True
+        use_linear_in_transformer: True
+        transformer_depth: 1
+        context_dim: 1024
+        legacy: False
+      vae_cfg:
+        embed_dim: 4
+        ddconfig:
+          double_z: true
+          z_channels: 4
+          resolution: 256
+          in_channels: 3
+          out_ch: 3
+          ch: 128
+          ch_mult:
+          - 1
+          - 2
+          - 4
+          - 4
+          num_res_blocks: 2
+          attn_resolutions: []
+          dropout: 0.0
+      clip_cfg:
+        embed_dim: 1024
+        vision_cfg:
+          image_size: 224
+          layers: 32
+          width: 1280
+          head_width: 80
+          patch_size: 14
+        text_cfg:
+          context_length: 77
+          vocab_size: 49408
+          width: 1024
+          heads: 16
+          layers: 24
+        layer: "penultimate"
+      controlnet_cfg:
+        use_checkpoint: True
+        image_size: 32 # unused
+        in_channels: 4
+        hint_channels: 4
+        model_channels: 320
+        attention_resolutions: [ 4, 2, 1 ]
+        num_res_blocks: 2
+        channel_mult: [ 1, 2, 4, 4 ]
+        num_head_channels: 64 # need to fix for flash-attn
+        use_spatial_transformer: True
+        use_linear_in_transformer: True
+        transformer_depth: 1
+        context_dim: 1024
+        legacy: False
+
+  swinir:
+    target: diffbir.model.swinir.SwinIR
+    params:
+      img_size: 64
+      patch_size: 1
+      in_chans: 3
+      embed_dim: 180
+      depths: [6, 6, 6, 6, 6, 6, 6, 6]
+      num_heads: [6, 6, 6, 6, 6, 6, 6, 6]
+      window_size: 8
+      mlp_ratio: 2
+      sf: 8
+      img_range: 1.0
+      upsampler: "nearest+conv"
+      resi_connection: "1conv"
+      unshuffle: True
+      unshuffle_scale: 8
+
+  diffusion:
+    target: diffbir.model.gaussian_diffusion.Diffusion
+    params:
+      linear_start: 0.00085
+      linear_end: 0.0120
+      timesteps: 1000
+      zero_snr: False
+      parameterization: eps
+
+dataset:
+  train:
+    target: diffbir.dataset.codeformer.CodeformerDataset_grpo
+    params:
+      # training file list path
+      file_list: ./dataset/FFHQ/image_paths_caption.txt
+      file_backend_cfg:
+        target: diffbir.dataset.file_backend.HardDiskBackend
+      out_size: 512
+      crop_type: center
+      blur_kernel_size: 41
+      kernel_list: ['iso', 'aniso']
+      kernel_prob: [0.5, 0.5]
+      blur_sigma: [0.1, 12]
+      downsample_range: [1, 12]
+      noise_range: [0, 15]
+      jpeg_range: [30, 100]
+
+batch_transform:
+  target: diffbir.dataset.batch_transform.IdentityBatchTransform
+
+# NOTE: the composite reward and its weights are NOT configured here -- they are defined in
+# the reward server: reward_server/app_face_reward.py :: REWARD_CONFIG
+# (face 0.3 / lpips 0.3 / clipiqa 0.1 / dwt 0.3). The training client only consumes the
+# scalar reward returned by the server (127.0.0.1:18085).
+
+train:
+  # pretrained sd v2.1 path
+  sd_path: ./weights/v2-1_512-ema-pruned.ckpt
+  facereward_path: ./weights/FaceRewardModel.pth
+  # experiment directory path
+  exp_dir: ./experiment
+  # stage 1 swinir path.
+  swinir_path: ./weights/face_swinir_v1.ckpt
+  controlnet_path: ./weights/v1_face.pth
+  learning_rate: 1e-6
+  mixed_precision: bf16
+  batch_size: 6
+  num_workers: 4
+  log_every: 50
+  ckpt_every: 600          # save inference-ready ControlNet weights (.pth) every N optimizer steps
+  noise_aug_timestep: 0
+  log_record: ~
+  num_image_per_lr: 9
+  num_epochs: 100          # number of training epochs
+  sample_num_batches_per_epoch: 12
+  train_num_inner_epochs: 1
+  sample_steps: 50
+  adv_clip_max: 5
+  clip_range: 1e-4
+  kl_beta: 0.0
+  per_prompt_stat_tracking: True
+  global_std: True
+  max_grad_norm: 1.0
+  timestep_fraction: 0.99
+
+
