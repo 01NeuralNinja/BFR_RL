@@ -133,11 +133,11 @@ train:
   batch_size: 6
   num_workers: 4
   log_every: 50
-  ckpt_every: 600          # save inference-ready ControlNet weights (.pth) every N optimizer steps
+  ckpt_every: 500          # save inference-ready ControlNet weights (.pth) every N optimizer steps
   noise_aug_timestep: 0
   log_record: ~
   num_image_per_lr: 9
-  num_epochs: 100          # number of training epochs
+  num_epochs: 160          # number of training epochs
   sample_num_batches_per_epoch: 12
   train_num_inner_epochs: 1
   sample_steps: 50
