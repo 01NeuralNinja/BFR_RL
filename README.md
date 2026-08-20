@@ -32,7 +32,13 @@ versions change the DeepSpeed gradient-accumulation behaviour and alter the trai
 
 ## Weights
 
-Download from **[Google Drive](https://drive.google.com/your-link-here)** and place under `./weights/`:
+All weights are hosted on **[Hugging Face — `wubin1928/BFR_RL`](https://huggingface.co/wubin1928/BFR_RL)**. Download them into `./weights/`:
+
+```bash
+pip install -U "huggingface_hub[cli]"
+hf download wubin1928/BFR_RL --local-dir ./weights
+```
+
 
 | file | description |
 |---|---|
