@@ -356,8 +356,8 @@ def main(args) -> None:
             for k in samples[0].keys()
         }
 
-        samples["rewards"]["ori_avg"] = samples["rewards"]["avg"]
-        samples["rewards"]["avg"] = samples["rewards"]["avg"].unsqueeze(-1) - cfg.train.kl_beta * samples["kl"]
+        samples["rewards"]["ori_avg"] = samples["rewards"]["total_scores"]
+        samples["rewards"]["avg"] = samples["rewards"]["total_scores"].unsqueeze(-1) - cfg.train.kl_beta * samples["kl"]
 
         # Gather rewards across processes
         gathered_rewards = {key: accelerator.gather(value) for key, value in samples["rewards"].items()}
@@ -384,6 +384,15 @@ def main(args) -> None:
         if accelerator.is_local_main_process:
             print("advantages: ", samples["advantages"].abs().mean())
             print("kl: ", samples["kl"].mean())
+
+        # Log reward statistics (composite score + per-metric breakdown).
+        reward_log = {"reward/ori_avg": float(gathered_rewards["ori_avg"].mean())}
+        for _m in ("face_scores", "lpips_scores", "clipiqa_scores", "dwt_scores"):
+            if _m in gathered_rewards:
+                reward_log[f"reward/{_m}"] = float(gathered_rewards[_m].mean())
+        accelerator.log(reward_log, step=global_step)
+        if accelerator.is_local_main_process:
+            print("reward:", {k: round(v, 4) for k, v in reward_log.items()})
 
         del samples["rewards"]
 
